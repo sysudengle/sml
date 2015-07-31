@@ -64,4 +64,76 @@ datatype move = Discard of card | Draw
 exception IllegalMove
 
 (* put your solutions for problem 2 here *)
-fun card_color
+fun card_color(s, r) = 
+    case s of
+         Spades => Black
+       | Clubs => Black
+       | _ => Red
+
+fun card_value(s, r) = 
+    case r of
+         Jack => 10
+       | Queen => 10
+       | King => 10
+       | Ace => 11
+       | Num i => i
+
+fun remove_card(cs, c) = 
+    let fun aux(acc, cs2) = 
+        case cs2 of
+             [] => raise IllegalMove
+           | h::t =>    if h = c
+                        then acc @ t
+                        else aux(acc @ [h], t)
+    in
+      aux([], cs)
+    end
+
+fun all_same_color(cs) = 
+    case cs of
+         [] => true
+       | _::[] => true
+       | h::(m::t) => card_color(h) = card_color(m) andalso
+                      all_same_color(m::t)
+
+fun sum_cards(cs) = 
+    let fun aux(acc, cs2) = 
+        case cs2 of
+             [] => acc
+           | h::t => aux(acc + card_value(h), t)
+    in
+        aux(0, cs)
+    end
+
+
+fun score(cs, goal) = 
+    let val denom = if all_same_color cs then 2 else 1
+        val sum = sum_cards(cs)
+    in
+        if goal < sum
+        then ((sum - goal) * 3) div denom
+        else (goal - sum) div denom
+    end
+    
+
+fun officiate(cs, moves, goal) = 
+    let fun aux(hcs, cls, mvs) = 
+            case mvs of
+                 [] => score(hcs, goal)
+               | (Discard cd)::tail => aux(remove_card(hcs, cd), cls, tail)
+                                     (*)(case hcs of
+                                       [] => aux(hcs, cls, tail)
+                                     | _::[] => let val hcs = remove_card(hcs, cd)
+                                                in 
+                                                    aux(hcs, cls, tail)
+                                                end)*)
+               | Draw::tail => case cls of
+                                    [] => score(hcs, goal)
+                                  | clh::cls_tail => 
+                                    if sum_cards(clh::hcs) > goal
+                                    then score(clh::hcs, goal)
+                                    else aux(clh::hcs, cls_tail, tail)
+    in
+        aux([], cs, moves)
+    end
+    
